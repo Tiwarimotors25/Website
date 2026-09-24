@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #111111;
+    background-color: #ffffff;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@keyframes tmMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.tm-marquee {
+  display: flex;
+  width: max-content;
+  animation: tmMarquee 26s linear infinite;
+}
+
+.tm-marquee:hover {
+  animation-play-state: paused;
+}

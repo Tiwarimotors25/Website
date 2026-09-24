@@ -1,0 +1,6 @@
+{
+  "name": "Tiwari Motors Smart Garage",
+  "description": "Multi-brand car service, repair, diagnostics, washing, and automotive care in Ambedkar Nagar, Uttar Pradesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
