@@ -1,69 +1,73 @@
 import React from 'react';
 import { Users, Car, ScanLine, Wrench, ShieldCheck, HeartHandshake } from 'lucide-react';
-import { Reveal, SectionHead } from './Reveal';
+import { SectionHead } from './Reveal';
 
 const ITEMS = [
   {
     icon: Users,
     title: 'Experienced Team',
-    desc: 'Trained technicians for all car brands.',
+    desc: 'Trained mechanics for multi-brand cars.',
   },
   {
     icon: Car,
     title: 'Multi-Brand Support',
-    desc: 'Maruti se Mahindra tak — sabhi cars welcome.',
+    desc: 'Maruti, Hyundai, Tata se Mahindra tak.',
   },
   {
     icon: ScanLine,
     title: 'Computer Diagnosis',
-    desc: 'Accurate fault detection, no guesswork.',
+    desc: 'OBD-II error check, no guesswork.',
   },
   {
     icon: Wrench,
     title: 'Complete Car Care',
-    desc: 'Service se washing tak, sab kuch ek hi jagah.',
+    desc: 'Service, AC, wash aur parts ek jagah.',
   },
   {
     icon: ShieldCheck,
-    title: 'Professional Equipment',
-    desc: 'Modern tools & diagnostic machines.',
+    title: 'Modern Tools',
+    desc: 'Hydraulic lift, high-pressure foam wash.',
   },
   {
     icon: HeartHandshake,
-    title: 'Customer-Focused Service',
-    desc: 'Saaf baat, sahi kaam, fair dealing.',
+    title: 'Fair Dealing',
+    desc: 'Clear estimation, genuine advice & spares.',
   },
 ];
 
 export const WhyUs: React.FC = () => {
   return (
-    <section id="why-us" className="bg-[#111111] scroll-mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
+    <section id="why-us" className="bg-[#111111] scroll-mt-20 py-8 sm:py-12 border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHead
-          eyebrow="Why Us"
+          eyebrow="Why Choose Us"
           title="Why Choose Tiwari Motors?"
-          subtitle="Aapki car ke liye sahi log, sahi tools aur sahi approach."
+          subtitle="Aapki gaadi ke liye sahi log, modern tools aur imaandar approach."
           dark
           testid="why-us-heading"
         />
 
-        <div className="mt-9 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ITEMS.map((item, i) => {
+        {/* Compact Grid: 6 cards in a tight 2 or 3 col layout with compact padding */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
+          {ITEMS.map((item) => {
             const Icon = item.icon;
             return (
-              <Reveal key={item.title} delay={Math.min(i * 0.05, 0.25)}>
-                <div className="h-full bg-white/[0.04] border border-white/10 hover:border-[#F58220]/50 rounded-2xl p-6 transition-all duration-300 hover:bg-white/[0.07] group">
-                  <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#F58220]/15 text-[#F58220] group-hover:bg-[#F58220] group-hover:text-white transition-colors duration-300">
-                    <Icon size={22} />
-                  </span>
-                  <h3 className="mt-4 font-heading font-bold text-lg text-white group-hover:text-[#F58220] transition-colors">
+              <div
+                key={item.title}
+                className="bg-white/[0.04] border border-white/10 hover:border-[#F58220]/50 rounded-xl p-3 sm:p-4 transition-all duration-200 hover:bg-white/[0.07] group flex items-start gap-3"
+              >
+                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#F58220]/15 text-[#F58220] group-hover:bg-[#F58220] group-hover:text-white transition-colors shrink-0 mt-0.5">
+                  <Icon size={16} />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-heading font-bold text-xs sm:text-sm text-white group-hover:text-[#F58220] transition-colors leading-snug">
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+                  <p className="mt-0.5 text-[11px] text-zinc-400 leading-relaxed line-clamp-2">
                     {item.desc}
                   </p>
                 </div>
-              </Reveal>
+              </div>
             );
           })}
         </div>

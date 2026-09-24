@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, ZoomIn, Plus, Trash2, ImagePlus } from 'lucide-react';
-import { Reveal, SectionHead } from './Reveal';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, ZoomIn, Plus, Trash2, ImagePlus, ArrowRight, ArrowLeft, Layers, Camera } from 'lucide-react';
+import { SectionHead } from './Reveal';
 import { GARAGE_PHOTO_SRC, LOGO_SRC } from '../config';
 
 interface GalleryPhoto {
@@ -11,57 +11,102 @@ interface GalleryPhoto {
   isUserUploaded?: boolean;
 }
 
+interface CategoryFolder {
+  name: string;
+  hindiTitle: string;
+  coverImage: string;
+  description: string;
+  iconText: string;
+}
+
 const DEFAULT_GALLERY: GalleryPhoto[] = [
   {
     id: 'g-1',
     src: GARAGE_PHOTO_SRC,
-    title: 'Tiwari Motors Smart Garage – Entrance & Yard',
-    category: 'Facility',
+    title: 'Tiwari Motors Smart Garage – Entrance & Workshop Yard',
+    category: 'Garage & Facility',
   },
   {
     id: 'g-2',
     src: LOGO_SRC,
     title: 'Tiwari Motors Smart Garage – Official Brand Identity',
-    category: 'Brand Logo',
+    category: 'Garage & Facility',
   },
   {
     id: 'g-3',
-    src: '/assets/images/car_diagnostics_scan_1790239233882.jpg',
-    title: 'Computerized OBD-II Diagnostics & Scanning',
-    category: 'Electronics',
+    src: '/images/gallery/garage_service_bay_1790239219424.jpg',
+    title: 'Multi-Brand Service Bay & Hydraulic Lifts',
+    category: 'Workshop & Repairs',
   },
   {
     id: 'g-4',
-    src: '/assets/images/car_foam_wash_1790239251473.jpg',
-    title: 'High Pressure Foam Washing & Detailing',
-    category: 'Car Wash',
+    src: '/images/gallery/hero_garage_service_1790239201662.jpg',
+    title: 'Engine & Suspension Repair Work in Action',
+    category: 'Workshop & Repairs',
   },
   {
     id: 'g-5',
-    src: '/assets/images/garage_service_bay_1790239219424.jpg',
-    title: 'Multi-Brand Service Bay & Hydraulic Lifts',
-    category: 'Workshop Bay',
+    src: '/images/gallery/car_diagnostics_scan_1790239233882.jpg',
+    title: 'Computerized OBD-II Diagnostics & Error Scanning',
+    category: 'Computer Scanning',
   },
   {
     id: 'g-6',
-    src: '/assets/images/car_accessories_display_1790239267979.jpg',
-    title: 'Premium Car Accessories & Fittings',
-    category: 'Accessories',
+    src: '/images/gallery/car_foam_wash_1790239251473.jpg',
+    title: 'High Pressure Foam Washing & Deep Cleaning',
+    category: 'Car Wash & Detailing',
+  },
+  {
+    id: 'g-7',
+    src: '/images/gallery/car_accessories_display_1790239267979.jpg',
+    title: 'Premium Car Accessories, Mats & Upgrades',
+    category: 'Car Accessories',
   },
 ];
 
+const CATEGORY_META: Record<string, { hindi: string; desc: string; icon: string }> = {
+  'Garage & Facility': {
+    hindi: 'वर्कशॉप और प्रवेश द्वार',
+    desc: 'Main garage front, parking yard and office',
+    icon: '🏢',
+  },
+  'Workshop & Repairs': {
+    hindi: 'सर्विस बे और रिपेयरिंग',
+    desc: 'Hydraulic lifts, engine, brakes and suspension bay',
+    icon: '🔧',
+  },
+  'Computer Scanning': {
+    hindi: 'कंप्यूटराइज्ड स्कैनिंग',
+    desc: 'OBD-II scanner, error code checks and sensor data',
+    icon: '💻',
+  },
+  'Car Wash & Detailing': {
+    hindi: 'फोम वॉश और सफाई',
+    desc: 'High pressure foam wash, vacuum and interior cleaning',
+    icon: '🫧',
+  },
+  'Car Accessories': {
+    hindi: 'कार एक्सेसरीज व फिटिंग',
+    desc: 'Seat covers, matting, speakers, lights & fittings',
+    icon: '🚗',
+  },
+};
+
 export const Gallery: React.FC = () => {
-  const [active, setActive] = useState<GalleryPhoto | null>(null);
+  const [activePhoto, setActivePhoto] = useState<GalleryPhoto | null>(null);
   const [userPhotos, setUserPhotos] = useState<GalleryPhoto[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // New photo form state
+  // Selected folder for drill-down (null = show folders view)
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  // Form state
   const [newPhotoSrc, setNewPhotoSrc] = useState('');
   const [newPhotoTitle, setNewPhotoTitle] = useState('');
-  const [newPhotoCategory, setNewPhotoCategory] = useState('Workshop');
+  const [newPhotoCategory, setNewPhotoCategory] = useState('Workshop & Repairs');
   const [photoError, setPhotoError] = useState('');
 
-  // Load user photos from localStorage
+  // Load user photos
   useEffect(() => {
     try {
       const saved = localStorage.getItem('tiwari_motors_custom_gallery');
@@ -74,22 +119,27 @@ export const Gallery: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setActive(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activePhoto) setActivePhoto(null);
+        else if (selectedFolder) setSelectedFolder(null);
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [activePhoto, selectedFolder]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setPhotoError('Please select a valid image file.');
+      setPhotoError('Kripya valid image chunein (JPG, PNG).');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setPhotoError('Image size should be less than 5MB.');
+      setPhotoError('Image size 5MB se kam hona chahiye.');
       return;
     }
 
@@ -104,11 +154,11 @@ export const Gallery: React.FC = () => {
   const handleSavePhoto = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPhotoSrc) {
-      setPhotoError('Please select a photo to upload.');
+      setPhotoError('Kripya photo select karein.');
       return;
     }
     if (!newPhotoTitle.trim()) {
-      setPhotoError('Please enter a photo title.');
+      setPhotoError('Kripya photo ka title likhein.');
       return;
     }
 
@@ -128,6 +178,9 @@ export const Gallery: React.FC = () => {
       // Ignore
     }
 
+    // Auto navigate to that category so user sees it right away
+    setSelectedFolder(newPhotoCategory);
+
     setNewPhotoSrc('');
     setNewPhotoTitle('');
     setPhotoError('');
@@ -145,16 +198,65 @@ export const Gallery: React.FC = () => {
     }
   };
 
-  const allItems = [...userPhotos, ...DEFAULT_GALLERY];
+  const allItems = useMemo(() => [...userPhotos, ...DEFAULT_GALLERY], [userPhotos]);
+
+  // Group items by category to build folder cards
+  const folders = useMemo<CategoryFolder[]>(() => {
+    const map = new Map<string, GalleryPhoto[]>();
+
+    // Preset order
+    const presetCategories = [
+      'Workshop & Repairs',
+      'Computer Scanning',
+      'Car Wash & Detailing',
+      'Car Accessories',
+      'Garage & Facility',
+    ];
+
+    presetCategories.forEach((c) => map.set(c, []));
+
+    allItems.forEach((item) => {
+      const cat = item.category || 'Workshop & Repairs';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(item);
+    });
+
+    const result: CategoryFolder[] = [];
+    map.forEach((photos, name) => {
+      if (photos.length > 0) {
+        const meta = CATEGORY_META[name] || {
+          hindi: name,
+          desc: `${photos.length} photos available`,
+          icon: '📁',
+        };
+        result.push({
+          name,
+          hindiTitle: meta.hindi,
+          coverImage: photos[0].src,
+          description: meta.desc,
+          iconText: meta.icon,
+        });
+      }
+    });
+
+    return result;
+  }, [allItems]);
+
+  // Photos inside the actively clicked folder
+  const currentFolderPhotos = useMemo(() => {
+    if (!selectedFolder) return [];
+    return allItems.filter((i) => i.category === selectedFolder);
+  }, [allItems, selectedFolder]);
 
   return (
-    <section id="gallery" className="bg-[#F7F7F7] scroll-mt-20 py-14 sm:py-20 border-b border-zinc-200">
+    <section id="gallery" className="bg-[#F8F9FA] scroll-mt-20 py-10 sm:py-14 border-b border-zinc-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+        {/* Header with Add Photo */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
           <SectionHead
-            eyebrow="Gallery"
+            eyebrow="Visual Showcase"
             title="Our Garage & Work"
-            subtitle="Ek jhalk — hamare workshop aur kaam ki."
+            subtitle="Category par tap karke workshop ke andar ki photos dekhein."
             testid="gallery-heading"
           />
 
@@ -162,59 +264,153 @@ export const Gallery: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#F58220] hover:bg-[#D96E14] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F58220] hover:bg-[#D96E14] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
             >
               <Plus size={14} />
               <span>Add Photo</span>
             </button>
-            <span className="text-xs text-zinc-500 bg-zinc-200/70 px-2.5 py-1.5 rounded-lg">
-              Click photo to enlarge
+            <span className="text-[11px] font-semibold text-zinc-500 bg-white border border-zinc-200 px-2.5 py-1 rounded-md">
+              Total {allItems.length} Photos
             </span>
           </div>
         </div>
 
-        {/* Gallery Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3.5 sm:gap-4">
-          {allItems.map((item, i) => (
-            <Reveal key={item.id} delay={Math.min(i * 0.05, 0.25)}>
-              <div
-                onClick={() => setActive(item)}
-                className="group relative rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer aspect-[4/3]"
-              >
-                <img
-                  src={item.src}
-                  alt={item.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3 sm:p-4 text-white">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#F58220]">
-                      {item.category}
-                    </span>
-                    <p className="text-xs sm:text-sm font-bold font-heading line-clamp-1">
+        {/* View 1: Categorized Folders (Super clean, no clutter, no huge endless page) */}
+        {!selectedFolder ? (
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+              {folders.map((folder) => {
+                const count = allItems.filter((p) => p.category === folder.name).length;
+                return (
+                  <div
+                    key={folder.name}
+                    onClick={() => setSelectedFolder(folder.name)}
+                    className="group relative rounded-xl overflow-hidden bg-white border border-zinc-200/90 shadow-2xs hover:shadow-md hover:border-[#F58220]/50 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+                  >
+                    {/* Compact Image Cover */}
+                    <div className="relative h-36 sm:h-40 w-full overflow-hidden bg-zinc-900">
+                      <img
+                        src={folder.coverImage}
+                        alt={folder.name}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = GARAGE_PHOTO_SRC;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90 group-hover:brightness-100"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                      {/* Top category badge */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold">
+                        <span>{folder.iconText}</span>
+                        <span>{folder.name}</span>
+                      </div>
+
+                      {/* Photo count */}
+                      <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded bg-[#F58220] text-white text-[11px] font-bold shadow-xs">
+                        {count} Photos
+                      </div>
+
+                      {/* Bottom title on image */}
+                      <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                        <p className="text-[11px] font-medium text-orange-200">
+                          {folder.hindiTitle}
+                        </p>
+                        <h4 className="font-heading font-bold text-sm sm:text-base text-white line-clamp-1">
+                          {folder.name}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Bottom action strip */}
+                    <div className="p-3 bg-white flex items-center justify-between border-t border-zinc-100">
+                      <p className="text-[11px] text-zinc-500 line-clamp-1">
+                        {folder.description}
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-[#F58220] group-hover:translate-x-0.5 transition-transform shrink-0">
+                        <span>Photos Dekhein</span>
+                        <ArrowRight size={13} />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* View 2: Inside Folder View (Clean sub-album) */
+          <div className="animate-in fade-in duration-200">
+            {/* Folder Header Bar */}
+            <div className="bg-white rounded-xl p-3 sm:p-4 border border-zinc-200 shadow-2xs mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolder(null)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Wapas Sabhi Categories</span>
+                </button>
+                <div className="h-4 w-[1px] bg-zinc-300 hidden sm:block" />
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-zinc-900 font-heading">
+                    {selectedFolder}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500">
+                    {currentFolderPhotos.length} photos available in this album
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[11px] text-zinc-500 italic hidden md:inline">
+                Kisi bhi photo par click karke full screen zoom dekhein
+              </span>
+            </div>
+
+            {/* Folder photos grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+              {currentFolderPhotos.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setActivePhoto(item)}
+                  className="group relative rounded-xl overflow-hidden border border-zinc-200 bg-white shadow-2xs hover:shadow-md transition-all duration-300 cursor-pointer aspect-[4/3]"
+                >
+                  <img
+                    src={item.src}
+                    alt={item.title}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = GARAGE_PHOTO_SRC;
+                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2.5 text-white">
+                    <div className="flex justify-end">
+                      <div className="p-1 rounded bg-white/20 backdrop-blur-xs text-white">
+                        <ZoomIn size={13} />
+                      </div>
+                    </div>
+                    <p className="text-xs font-bold font-heading line-clamp-2">
                       {item.title}
                     </p>
                   </div>
-                  <div className="p-1.5 rounded-md bg-white/20 backdrop-blur-xs">
-                    <ZoomIn size={14} />
-                  </div>
-                </div>
 
-                {item.isUserUploaded && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleDeletePhoto(item.id, e)}
-                    className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-600 text-white rounded-md transition-colors z-20"
-                    title="Remove photo"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-              </div>
-            </Reveal>
-          ))}
-        </div>
+                  {item.isUserUploaded && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeletePhoto(item.id, e)}
+                      className="absolute top-2 right-2 p-1.5 bg-black/75 hover:bg-red-600 text-white rounded-md transition-colors z-20"
+                      title="Delete Photo"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Photo Modal */}
@@ -226,16 +422,16 @@ export const Gallery: React.FC = () => {
           onClick={() => setIsAddModalOpen(false)}
         >
           <div
-            className="relative max-w-md w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 p-5 sm:p-6"
+            className="relative max-w-md w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-zinc-200 p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 mb-3.5">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-[#F58220]">
                   <ImagePlus size={18} />
                 </div>
                 <h3 className="text-base font-bold text-zinc-900 font-heading">
-                  Add Garage Photo
+                  Nayi Photo Upload Karein
                 </h3>
               </div>
               <button
@@ -253,10 +449,10 @@ export const Gallery: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSavePhoto} className="space-y-3.5">
+            <form onSubmit={handleSavePhoto} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                  Choose Photo from Device
+                  Photo Select Karein
                 </label>
                 <input
                   type="file"
@@ -267,7 +463,7 @@ export const Gallery: React.FC = () => {
               </div>
 
               {newPhotoSrc && (
-                <div className="relative rounded-lg overflow-hidden h-32 bg-zinc-100 border border-zinc-200">
+                <div className="relative rounded-lg overflow-hidden h-28 bg-zinc-100 border border-zinc-200">
                   <img
                     src={newPhotoSrc}
                     alt="Preview"
@@ -285,42 +481,41 @@ export const Gallery: React.FC = () => {
                   required
                   value={newPhotoTitle}
                   onChange={(e) => setNewPhotoTitle(e.target.value)}
-                  placeholder="e.g. Engine Repair, New Car Delivery"
-                  className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 focus:outline-none focus:border-[#F58220]"
+                  placeholder="e.g. Scorpio Service, New Bay, Scanner"
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:border-[#F58220]"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                  Category
+                  Kaun Si Category (Folder) Me Daalna Hai?
                 </label>
                 <select
                   value={newPhotoCategory}
                   onChange={(e) => setNewPhotoCategory(e.target.value)}
-                  className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 focus:outline-none focus:border-[#F58220]"
+                  className="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:border-[#F58220]"
                 >
-                  <option value="Garage Facility">Garage Facility</option>
-                  <option value="Workshop Bays">Workshop Bays</option>
-                  <option value="Diagnostics & Scanning">Diagnostics & Scanning</option>
-                  <option value="Car Wash">Car Wash</option>
-                  <option value="Accessories">Accessories</option>
-                  <option value="Customer Vehicle">Customer Vehicle</option>
+                  <option value="Workshop & Repairs">Workshop & Repairs</option>
+                  <option value="Computer Scanning">Computer Scanning</option>
+                  <option value="Car Wash & Detailing">Car Wash & Detailing</option>
+                  <option value="Car Accessories">Car Accessories</option>
+                  <option value="Garage & Facility">Garage & Facility</option>
                 </select>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-3 py-2 text-xs font-semibold text-zinc-600 hover:text-zinc-900"
+                  className="px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:text-zinc-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#F58220] hover:bg-[#D96E14] text-white text-xs font-bold shadow-sm"
+                  className="px-4 py-1.5 rounded-lg bg-[#F58220] hover:bg-[#D96E14] text-white text-xs font-bold shadow-xs"
                 >
-                  Save Photo
+                  Photo Save Karein
                 </button>
               </div>
             </form>
@@ -329,12 +524,12 @@ export const Gallery: React.FC = () => {
       )}
 
       {/* Lightbox Modal */}
-      {active && (
+      {activePhoto && (
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => setActive(null)}
+          onClick={() => setActivePhoto(null)}
         >
           <div
             className="relative max-w-4xl w-full bg-[#1c1c1c] rounded-2xl overflow-hidden border border-zinc-700 shadow-2xl"
@@ -342,32 +537,32 @@ export const Gallery: React.FC = () => {
           >
             <div className="relative max-h-[75vh] flex items-center justify-center bg-black">
               <img
-                src={active.src}
-                alt={active.title}
+                src={activePhoto.src}
+                alt={activePhoto.title}
                 className="max-h-[75vh] w-auto max-w-full object-contain"
               />
               <button
                 type="button"
-                onClick={() => setActive(null)}
+                onClick={() => setActivePhoto(null)}
                 className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 hover:bg-black text-white hover:text-[#F58220] transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 bg-[#181818] border-t border-zinc-800 flex items-center justify-between gap-3">
+            <div className="p-3 bg-[#181818] border-t border-zinc-800 flex items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#F58220]">
-                  {active.category}
+                  {activePhoto.category}
                 </span>
-                <p className="text-sm sm:text-base font-bold text-white font-heading mt-0.5">
-                  {active.title}
+                <p className="text-sm font-bold text-white font-heading mt-0.5">
+                  {activePhoto.title}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setActive(null)}
-                className="px-3.5 py-1.5 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer"
+                onClick={() => setActivePhoto(null)}
+                className="px-3 py-1.5 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer"
               >
                 Close
               </button>
